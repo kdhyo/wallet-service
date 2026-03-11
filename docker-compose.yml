@@ -1,0 +1,40 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: wallet-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wallet
+      MYSQL_USER: wallet_app
+      MYSQL_PASSWORD: wallet_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u wallet_app -pwallet_pass --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - wallet_mysql_data:/var/lib/mysql
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wallet-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/wallet?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: wallet_app
+      DB_PASSWORD: wallet_pass
+      TZ: Asia/Seoul
+    ports:
+      - "8080:8080"
+
+volumes:
+  wallet_mysql_data:
